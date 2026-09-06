@@ -6,10 +6,12 @@
 <title>Player Portal</title>
 <link rel="manifest" href="manifest.json" />
 <meta name="theme-color" content="#12181B" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
   :root{
     --ink:#12181B;
     --ink-2:#1B2327;
+    --ink-3:#212B2E;
     --chalk:#F3F1EA;
     --chalk-dim:#C9C6BC;
     --slate:#7C8A8E;
@@ -17,6 +19,7 @@
     --amber:#E8A33D;
     --amber-dim:#7A5A28;
     --danger:#C4553B;
+    --ok:#5C9A6E;
   }
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;}
@@ -34,7 +37,7 @@
   }
 
   /* ---------- Shell ---------- */
-  #app{max-width:520px; margin:0 auto; min-height:100vh; display:flex; flex-direction:column;}
+  #app{max-width:560px; margin:0 auto; min-height:100vh; display:flex; flex-direction:column;}
   header.topbar{
     display:flex; align-items:baseline; justify-content:space-between;
     padding:20px 20px 14px 20px;
@@ -44,6 +47,11 @@
     font-size:13px; letter-spacing:0.08em; color:var(--slate);
   }
   header.topbar .brand b{color:var(--chalk); font-weight:700;}
+  header.topbar .brand .tag{
+    color:var(--amber); font-size:11px; margin-left:8px; border:1px solid var(--amber-dim);
+    padding:2px 6px; border-radius:2px; letter-spacing:0.06em;
+  }
+  header.topbar .actions{display:flex; gap:16px; align-items:baseline;}
   header.topbar button{
     background:none; border:none; color:var(--slate); font-size:13px;
     cursor:pointer; padding:6px 0;
@@ -52,7 +60,7 @@
   main{flex:1; padding:0 20px 40px 20px;}
 
   /* ---------- Login ---------- */
-  .login-wrap{padding-top:14vh;}
+  .login-wrap{padding-top:12vh;}
   .login-wrap .kicker{
     color:var(--amber); font-size:14px; margin-bottom:6px; font-weight:600;
   }
@@ -60,7 +68,7 @@
     font-size:44px; line-height:1.05; margin:0 0 8px 0;
     font-weight:800;
   }
-  .sub{color:var(--slate); font-size:15px; margin:0 0 36px 0; max-width:34ch;}
+  .sub{color:var(--slate); font-size:15px; margin:0 0 32px 0; max-width:34ch;}
 
   .slip{border-top:1px solid var(--line);}
   .field{
@@ -90,14 +98,35 @@
   button.primary:active{transform:translateY(1px);}
   button.primary:disabled{background:#4a4536; color:#8a8470; cursor:default;}
 
+  button.ghost{
+    width:100%; background:none; color:var(--chalk-dim); border:1px solid var(--line);
+    padding:14px 18px; font-size:15px; font-weight:600; border-radius:2px;
+    cursor:pointer; margin-top:10px;
+  }
+  button.ghost:hover{border-color:var(--slate); color:var(--chalk);}
+
   .error-msg{
     margin-top:16px; padding:12px 14px; border-left:3px solid var(--danger);
     background:rgba(196,85,59,0.08); color:#e8b3a3; font-size:14px; line-height:1.5;
   }
+  .ok-msg{
+    margin-top:16px; padding:12px 14px; border-left:3px solid var(--ok);
+    background:rgba(92,154,110,0.08); color:#bfe0c9; font-size:14px; line-height:1.5;
+  }
   .hint{margin-top:22px; font-size:13px; color:var(--slate); line-height:1.6;}
   .hint code{background:var(--ink-2); padding:1px 6px; border-radius:3px; color:var(--chalk-dim);}
 
-  /* ---------- Dashboard ---------- */
+  .switch-mode{
+    margin-top:40px; padding-top:20px; border-top:1px solid var(--line);
+    text-align:center;
+  }
+  .switch-mode button{
+    background:none; border:none; color:var(--slate); font-size:13px;
+    text-decoration:underline; cursor:pointer;
+  }
+  .switch-mode button:hover{color:var(--chalk);}
+
+  /* ---------- Dashboard (player) ---------- */
   .greeting{padding:28px 0 4px 0;}
   .greeting .kicker{color:var(--amber); font-size:13px; font-weight:600; margin-bottom:4px;}
   .greeting h1{font-size:30px; margin:0 0 2px 0; font-weight:800;}
@@ -125,12 +154,12 @@
   .row .datebox .m{font-size:11px; color:var(--slate); letter-spacing:0.08em; margin-top:3px;}
   .row .info{flex:1; min-width:0;}
   .row .info .title{font-size:17px; font-weight:700; margin-bottom:4px;}
-  .row .info .meta{font-size:13.5px; color:var(--slate); line-height:1.5;}
-  .row .info .meta span{display:inline-block;}
-  .row .info .meta .dot{margin:0 6px; color:#3d4a4d;}
+  .row .info .meta{font-size:13.5px; color:var(--slate); line-height:1.7;}
+  .row .info .meta .metaline{display:block;}
+  .row .info .meta b{color:var(--chalk-dim); font-weight:600;}
   .row .badge{
     flex-shrink:0; font-size:11px; font-weight:700; letter-spacing:0.04em;
-    padding:4px 8px; border-radius:2px; align-self:center;
+    padding:4px 8px; border-radius:2px; align-self:flex-start; margin-top:2px;
   }
   .badge.match{background:rgba(232,163,61,0.14); color:var(--amber);}
   .badge.session{background:rgba(124,138,142,0.14); color:var(--chalk-dim);}
@@ -145,6 +174,73 @@
     margin-top:40px; padding-top:18px; border-top:1px solid var(--line);
     font-size:12.5px; color:#4d5a5d; line-height:1.6;
   }
+
+  /* ---------- Admin ---------- */
+  .admin-list{border-top:1px solid var(--line); margin-top:18px;}
+  .admin-row{
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+    padding:16px 0; border-bottom:1px solid var(--line);
+    cursor:pointer; background:none; border-left:none; border-right:none; border-top:none;
+    width:100%; text-align:left; font-family:inherit;
+  }
+  .admin-row:hover{background:var(--ink-2);}
+  .admin-row .who{flex:1; min-width:0;}
+  .admin-row .who .nm{font-size:16px; font-weight:700; color:var(--chalk);}
+  .admin-row .who .pd{font-size:13px; color:var(--slate); margin-top:2px;}
+  .admin-row .stat{font-size:12px; color:var(--slate); text-align:right; flex-shrink:0;}
+  .admin-row .stat b{color:var(--amber); display:block; font-size:16px; font-weight:800;}
+  .admin-row .chev{color:var(--slate); font-size:18px; flex-shrink:0;}
+  .test-tag{
+    font-size:10px; color:var(--slate); border:1px solid var(--line);
+    padding:1px 5px; border-radius:2px; margin-left:8px; letter-spacing:0.04em;
+  }
+
+  .search-box{margin-top:8px;}
+  .search-box input{
+    width:100%; background:var(--ink-2); border:1px solid var(--line); outline:none;
+    color:var(--chalk); font-size:15px; font-family:inherit; padding:12px 14px; border-radius:2px;
+  }
+  .search-box input:focus{border-color:var(--amber);}
+
+  .back-link{
+    background:none; border:none; color:var(--slate); font-size:13px; cursor:pointer;
+    padding:4px 0; margin-bottom:4px;
+  }
+  .back-link:hover{color:var(--chalk);}
+
+  .upload-zone{
+    border:1.5px dashed var(--line); border-radius:3px; padding:32px 20px;
+    text-align:center; margin-top:20px; cursor:pointer; transition:border-color 0.15s;
+  }
+  .upload-zone:hover, .upload-zone.drag{border-color:var(--amber);}
+  .upload-zone .icon{font-size:28px; margin-bottom:10px; color:var(--slate);}
+  .upload-zone .main-txt{font-size:15px; font-weight:600; color:var(--chalk-dim);}
+  .upload-zone .sub-txt{font-size:13px; color:var(--slate); margin-top:6px;}
+  .upload-zone input[type=file]{display:none;}
+
+  .spec-box{
+    margin-top:16px; padding:14px 16px; background:var(--ink-2); border-radius:3px;
+    font-size:12.5px; color:var(--slate); line-height:1.7;
+  }
+  .spec-box code{color:var(--chalk-dim); background:var(--ink-3); padding:1px 6px; border-radius:2px;}
+
+  table.preview{
+    width:100%; border-collapse:collapse; margin-top:18px; font-size:13px;
+  }
+  table.preview th{
+    text-align:left; color:var(--slate); font-weight:600; font-size:11px;
+    letter-spacing:0.04em; padding:8px 8px; border-bottom:1px solid var(--line);
+  }
+  table.preview td{
+    padding:10px 8px; border-bottom:1px solid var(--line); color:var(--chalk-dim);
+  }
+  table.preview tr.bad td{color:var(--danger);}
+  .preview-wrap{overflow-x:auto;}
+
+  .confirm-bar{
+    display:flex; gap:10px; margin-top:20px;
+  }
+  .confirm-bar button.primary, .confirm-bar button.ghost{margin-top:0;}
 
   @media (prefers-reduced-motion: no-preference){
     .fade-in{animation: fadeIn 0.35s ease-out;}
@@ -164,75 +260,85 @@
    CONFIG — swap this when the real Apps Script API is ready
    ========================================================= */
 const CONFIG = {
-  // Set to true once you deploy the real Google Apps Script Web App
-  // and paste its /exec URL below. Until then this runs on local
-  // mock/test data so the app is fully usable right now.
   USE_REMOTE_API: false,
   API_URL: "PASTE_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE",
+  // Simple shared admin password for now. Change this before sharing the link.
+  ADMIN_PASSWORD: "admin123",
 };
 
 /* =========================================================
    MOCK DATA — a few test players, so you can try the app today.
-   Replace/remove once USE_REMOTE_API is turned on.
-   Real players (once you send the sheet) will show an EMPTY
-   schedule until you add their match/session dates later —
-   the app already supports that empty state below.
+   Once USE_REMOTE_API is true, this list comes from the Sheet instead,
+   but locally-uploaded match data (below) still layers on top of it
+   until admin uploads are wired to write back to the Sheet too.
    ========================================================= */
 const MOCK_PLAYERS = [
-  {
-    name: "Ravi Kumar",
-    pid: "TEST-001",
-    dob: "2003-04-12",
-    matches: [
-      { date: "2026-09-14", opponent: "Aditya Rao", time: "4:30 PM", venue: "Court 2, Main Hall" },
-      { date: "2026-09-21", opponent: "Sameer Iqbal", time: "6:00 PM", venue: "Court 1, Main Hall" },
-    ],
-    sessions: [
-      { date: "2026-09-08", title: "Group A Practice", time: "5:00 PM", venue: "Training Court" },
-    ],
-  },
-  {
-    name: "Priya Menon",
-    pid: "TEST-002",
-    dob: "2001-11-30",
-    matches: [
-      { date: "2026-09-15", opponent: "Neha Joshi", time: "2:00 PM", venue: "Court 3, Main Hall" },
-    ],
-    sessions: [],
-  },
-  {
-    name: "Test Empty",
-    pid: "TEST-003",
-    dob: "2000-01-01",
-    matches: [],
-    sessions: [],
-  },
+  { name: "Ravi Kumar", pid: "TEST-001", dob: "2003-04-12", isTest: true },
+  { name: "Priya Menon", pid: "TEST-002", dob: "2001-11-30", isTest: true },
+  { name: "Test Empty", pid: "TEST-003", dob: "2000-01-01", isTest: true },
 ];
 
 /* =========================================================
-   Data access layer — swaps between mock and real API
+   Local match storage (per-PID)
+   ---------------------------------------------------------
+   Structure in localStorage under key "matches:<PID>":
+   [{ date: "2026-09-14", time: "4:30 PM", arrive: "4:00 PM",
+      location: "Court 2, Main Hall", playersOnField: 6 }, ...]
+
+   This is the "database" for now. When USE_REMOTE_API is true and
+   the Apps Script backend supports write-back, swap getMatchesFor /
+   saveMatchesFor to call the API instead — same shape, same callers.
+   ========================================================= */
+function matchesKey(pid){ return `matches:${pid.trim().toUpperCase()}`; }
+
+function getMatchesFor(pid){
+  try {
+    const raw = localStorage.getItem(matchesKey(pid));
+    return raw ? JSON.parse(raw) : [];
+  } catch(e){ return []; }
+}
+
+function saveMatchesFor(pid, rows){
+  localStorage.setItem(matchesKey(pid), JSON.stringify(rows));
+}
+
+function upcomingOnly(rows){
+  const today = new Date(); today.setHours(0,0,0,0);
+  return rows.filter(r => {
+    const d = new Date(r.date);
+    return !isNaN(d) && d >= today;
+  }).sort((a,b)=>a.date.localeCompare(b.date));
+}
+
+/* =========================================================
+   Data access layer — login (swaps between mock and real API)
    ========================================================= */
 async function authenticate(name, pid, dob) {
   if (CONFIG.USE_REMOTE_API) {
     const url = `${CONFIG.API_URL}?action=login&name=${encodeURIComponent(name)}&pid=${encodeURIComponent(pid)}&dob=${encodeURIComponent(dob)}`;
     const res = await fetch(url);
     if (!res.ok) throw new Error("Network error contacting the server.");
-    const data = await res.json();
-    return data; // expect { ok: true, player: {...} } or { ok: false, reason: "..." }
+    return await res.json();
   }
-
-  // ---- mock mode ----
-  await new Promise(r => setTimeout(r, 350)); // feel like a real check
+  await new Promise(r => setTimeout(r, 300));
   const norm = s => (s || "").trim().toLowerCase();
   const player = MOCK_PLAYERS.find(p =>
-    norm(p.name) === norm(name) &&
-    norm(p.pid) === norm(pid) &&
-    p.dob === dob
+    norm(p.name) === norm(name) && norm(p.pid) === norm(pid) && p.dob === dob
   );
-  if (!player) {
-    return { ok: false, reason: "No player found matching that name, player ID, and date of birth." };
-  }
+  if (!player) return { ok: false, reason: "No player found matching that name, player ID, and date of birth." };
   return { ok: true, player };
+}
+
+async function fetchAllPlayers(){
+  if (CONFIG.USE_REMOTE_API) {
+    const url = `${CONFIG.API_URL}?action=listPlayers`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error("Network error contacting the server.");
+    const data = await res.json();
+    return data.players || [];
+  }
+  await new Promise(r => setTimeout(r, 200));
+  return MOCK_PLAYERS;
 }
 
 /* =========================================================
@@ -242,11 +348,18 @@ const app = document.getElementById("app");
 const MONTHS = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"];
 
 function fmtDatePart(iso){
-  // iso: YYYY-MM-DD
-  const [y,m,d] = iso.split("-").map(Number);
-  return { day: String(d).padStart(2,"0"), mon: MONTHS[m-1] };
+  const [y,m,d] = String(iso).split("-").map(Number);
+  return { day: String(d).padStart(2,"0"), mon: MONTHS[(m-1+12)%12] };
+}
+function escapeHtml(str){
+  return String(str ?? "").replace(/[&<>"']/g, c => ({
+    "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"
+  }[c]));
 }
 
+/* ---------------------------------------------------------
+   LOGIN screen
+   --------------------------------------------------------- */
 function renderLogin(errorMsg){
   app.innerHTML = `
     <header class="topbar">
@@ -276,23 +389,23 @@ function renderLogin(errorMsg){
           <div class="cta-row">
             <button class="primary" id="submitBtn" type="submit">Log in</button>
           </div>
-          ${errorMsg ? `<div class="error-msg">${errorMsg}</div>` : ""}
+          ${errorMsg ? `<div class="error-msg">${escapeHtml(errorMsg)}</div>` : ""}
         </form>
 
-        <div class="hint">
-          Testing the app? Try <code>Ravi Kumar</code> / <code>TEST-001</code> / <code>1998-... </code> — see the note below for the full test set.
-        </div>
         <footer class="note">
-          Test players (mock data mode): Ravi Kumar · TEST-001 · 2003-04-12 &nbsp;|&nbsp;
+          Test players: Ravi Kumar · TEST-001 · 2003-04-12 &nbsp;|&nbsp;
           Priya Menon · TEST-002 · 2001-11-30 &nbsp;|&nbsp;
           Test Empty · TEST-003 · 2000-01-01
         </footer>
+
+        <div class="switch-mode">
+          <button id="adminLinkBtn" type="button">Admin sign-in</button>
+        </div>
       </div>
     </main>
   `;
 
-  const form = document.getElementById("loginForm");
-  form.addEventListener("submit", async (e) => {
+  document.getElementById("loginForm").addEventListener("submit", async (e) => {
     e.preventDefault();
     const btn = document.getElementById("submitBtn");
     const name = document.getElementById("fname").value;
@@ -303,7 +416,6 @@ function renderLogin(errorMsg){
       renderLogin("Please fill in all three fields.");
       return;
     }
-
     btn.disabled = true;
     btn.textContent = "Checking…";
     try {
@@ -318,37 +430,33 @@ function renderLogin(errorMsg){
       renderLogin("Couldn't reach the server. Check your connection and try again.");
     }
   });
+
+  document.getElementById("adminLinkBtn").addEventListener("click", () => renderAdminLogin());
 }
 
+/* ---------------------------------------------------------
+   PLAYER dashboard
+   --------------------------------------------------------- */
 function renderDashboard(player){
-  const matches = (player.matches || []).slice().sort((a,b)=>a.date.localeCompare(b.date));
-  const sessions = (player.sessions || []).slice().sort((a,b)=>a.date.localeCompare(b.date));
+  const rows = upcomingOnly(getMatchesFor(player.pid));
 
-  const matchRows = matches.length ? matches.map(m => {
+  const matchRows = rows.length ? rows.map(m => {
     const dp = fmtDatePart(m.date);
     return `
       <div class="row fade-in">
         <div class="datebox"><div class="d scorefont">${dp.day}</div><div class="m">${dp.mon}</div></div>
         <div class="info">
-          <div class="title">vs ${escapeHtml(m.opponent)}</div>
-          <div class="meta"><span>${escapeHtml(m.time)}</span><span class="dot">·</span><span>${escapeHtml(m.venue)}</span></div>
+          <div class="title">Match day</div>
+          <div class="meta">
+            <span class="metaline"><b>Kick-off</b> ${escapeHtml(m.time || "TBC")}</span>
+            <span class="metaline"><b>Arrive by</b> ${escapeHtml(m.arrive || "TBC")}</span>
+            <span class="metaline"><b>Location</b> ${escapeHtml(m.location || "TBC")}</span>
+            <span class="metaline"><b>Players on field</b> ${escapeHtml(m.playersOnField ?? "TBC")}</span>
+          </div>
         </div>
         <div class="badge match">MATCH</div>
       </div>`;
-  }).join("") : `<div class="empty">No upcoming matches scheduled yet. <b>Check back soon</b> — the fixtures list is updated as rounds are drawn.</div>`;
-
-  const sessionRows = sessions.length ? sessions.map(s => {
-    const dp = fmtDatePart(s.date);
-    return `
-      <div class="row fade-in">
-        <div class="datebox"><div class="d scorefont">${dp.day}</div><div class="m">${dp.mon}</div></div>
-        <div class="info">
-          <div class="title">${escapeHtml(s.title)}</div>
-          <div class="meta"><span>${escapeHtml(s.time)}</span><span class="dot">·</span><span>${escapeHtml(s.venue)}</span></div>
-        </div>
-        <div class="badge session">SESSION</div>
-      </div>`;
-  }).join("") : `<div class="empty">No upcoming sessions scheduled yet. <b>Check back soon</b> — training slots are added as they're confirmed.</div>`;
+  }).join("") : `<div class="empty">No upcoming matches scheduled yet. <b>Check back soon</b> — this list updates as soon as your organizer confirms fixtures.</div>`;
 
   app.innerHTML = `
     <header class="topbar">
@@ -364,18 +472,12 @@ function renderDashboard(player){
 
       <div class="section-head">
         <h2>UPCOMING MATCHES</h2>
-        <div class="count">${matches.length}</div>
+        <div class="count">${rows.length}</div>
       </div>
       <div class="board">${matchRows}</div>
 
-      <div class="section-head">
-        <h2>UPCOMING SESSIONS</h2>
-        <div class="count">${sessions.length}</div>
-      </div>
-      <div class="board">${sessionRows}</div>
-
       <footer class="note">
-        Schedule shown here is pulled from the tournament roster. If something looks wrong, contact your organizer.
+        Schedule shown here is set by your organizer. If something looks wrong, contact them directly.
       </footer>
     </main>
   `;
@@ -386,16 +488,336 @@ function renderDashboard(player){
   });
 }
 
-function escapeHtml(str){
-  return String(str ?? "").replace(/[&<>"']/g, c => ({
-    "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"
-  }[c]));
+/* ---------------------------------------------------------
+   ADMIN — login
+   --------------------------------------------------------- */
+function renderAdminLogin(errorMsg){
+  app.innerHTML = `
+    <header class="topbar">
+      <div class="brand"><b>PLAYER PORTAL</b><span class="tag">ADMIN</span></div>
+    </header>
+    <main>
+      <div class="login-wrap" style="padding-top:16vh;">
+        <div class="kicker">ADMIN ACCESS</div>
+        <h1 class="hero scorefont">Manage<br/>rosters.</h1>
+        <p class="sub">Enter the admin password to view all registered players and upload match schedules.</p>
+
+        <form id="adminForm" novalidate>
+          <div class="slip">
+            <div class="field">
+              <label for="apw">PASSWORD</label>
+              <input id="apw" name="apw" type="password" autocomplete="current-password" placeholder="••••••••" required />
+            </div>
+          </div>
+          <div class="cta-row">
+            <button class="primary" id="adminSubmitBtn" type="submit">Enter admin mode</button>
+          </div>
+          ${errorMsg ? `<div class="error-msg">${escapeHtml(errorMsg)}</div>` : ""}
+        </form>
+
+        <div class="switch-mode">
+          <button id="backToPlayerBtn" type="button">Back to player sign-in</button>
+        </div>
+      </div>
+    </main>
+  `;
+
+  document.getElementById("adminForm").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const pw = document.getElementById("apw").value;
+    if (pw === CONFIG.ADMIN_PASSWORD){
+      sessionStorage.setItem("isAdmin", "1");
+      renderAdminList();
+    } else {
+      renderAdminLogin("Incorrect password.");
+    }
+  });
+  document.getElementById("backToPlayerBtn").addEventListener("click", () => renderLogin());
+}
+
+/* ---------------------------------------------------------
+   ADMIN — player list
+   --------------------------------------------------------- */
+let ADMIN_PLAYERS_CACHE = null;
+
+async function renderAdminList(){
+  app.innerHTML = `
+    <header class="topbar">
+      <div class="brand"><b>PLAYER PORTAL</b><span class="tag">ADMIN</span></div>
+      <div class="actions"><button id="adminLogoutBtn">Exit admin</button></div>
+    </header>
+    <main>
+      <div class="greeting" style="padding-top:24px;">
+        <div class="kicker">ALL REGISTERED PLAYERS</div>
+        <h1 style="font-size:26px;">Select a player</h1>
+      </div>
+      <div class="search-box">
+        <input id="playerSearch" type="text" placeholder="Search by name or PID…" />
+      </div>
+      <div id="adminListBody" class="admin-list"><div class="empty">Loading players…</div></div>
+    </main>
+  `;
+
+  document.getElementById("adminLogoutBtn").addEventListener("click", () => {
+    sessionStorage.removeItem("isAdmin");
+    renderLogin();
+  });
+
+  if (!ADMIN_PLAYERS_CACHE){
+    try {
+      ADMIN_PLAYERS_CACHE = await fetchAllPlayers();
+    } catch(e){
+      ADMIN_PLAYERS_CACHE = [];
+    }
+  }
+  renderAdminListBody(ADMIN_PLAYERS_CACHE);
+
+  document.getElementById("playerSearch").addEventListener("input", (e) => {
+    const q = e.target.value.trim().toLowerCase();
+    const filtered = ADMIN_PLAYERS_CACHE.filter(p =>
+      p.name.toLowerCase().includes(q) || p.pid.toLowerCase().includes(q)
+    );
+    renderAdminListBody(filtered);
+  });
+}
+
+function renderAdminListBody(players){
+  const body = document.getElementById("adminListBody");
+  if (!players.length){
+    body.innerHTML = `<div class="empty">No players found.</div>`;
+    return;
+  }
+  body.innerHTML = players.map(p => {
+    const count = upcomingOnly(getMatchesFor(p.pid)).length;
+    return `
+      <button class="admin-row" data-pid="${escapeHtml(p.pid)}">
+        <div class="who">
+          <div class="nm">${escapeHtml(p.name)}${p.isTest ? '<span class="test-tag">TEST</span>' : ''}</div>
+          <div class="pd">PID ${escapeHtml(p.pid)}</div>
+        </div>
+        <div class="stat"><b>${count}</b>upcoming</div>
+        <div class="chev">›</div>
+      </button>`;
+  }).join("");
+
+  body.querySelectorAll(".admin-row").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const pid = btn.getAttribute("data-pid");
+      const player = ADMIN_PLAYERS_CACHE.find(p => p.pid === pid);
+      renderAdminPlayerDetail(player);
+    });
+  });
+}
+
+/* ---------------------------------------------------------
+   ADMIN — single player detail + upload
+   --------------------------------------------------------- */
+const REQUIRED_HEADERS = ["date", "time", "time to arrive", "location", "how many players on field"];
+
+function renderAdminPlayerDetail(player, statusMsg){
+  const rows = upcomingOnly(getMatchesFor(player.pid));
+
+  const rowsHtml = rows.length ? rows.map(m => {
+    const dp = fmtDatePart(m.date);
+    return `
+      <div class="row">
+        <div class="datebox"><div class="d scorefont">${dp.day}</div><div class="m">${dp.mon}</div></div>
+        <div class="info">
+          <div class="title">Match day</div>
+          <div class="meta">
+            <span class="metaline"><b>Kick-off</b> ${escapeHtml(m.time || "TBC")}</span>
+            <span class="metaline"><b>Arrive by</b> ${escapeHtml(m.arrive || "TBC")}</span>
+            <span class="metaline"><b>Location</b> ${escapeHtml(m.location || "TBC")}</span>
+            <span class="metaline"><b>Players on field</b> ${escapeHtml(m.playersOnField ?? "TBC")}</span>
+          </div>
+        </div>
+        <div class="badge match">MATCH</div>
+      </div>`;
+  }).join("") : `<div class="empty">No matches uploaded yet for this player.</div>`;
+
+  app.innerHTML = `
+    <header class="topbar">
+      <div class="brand"><b>PLAYER PORTAL</b><span class="tag">ADMIN</span></div>
+      <div class="actions"><button id="adminLogoutBtn">Exit admin</button></div>
+    </header>
+    <main>
+      <button class="back-link" id="backBtn">‹ All players</button>
+      <div class="greeting" style="padding-top:6px;">
+        <div class="kicker">EDITING SCHEDULE FOR</div>
+        <h1>${escapeHtml(player.name)}</h1>
+        <div class="pid-tag">PID ${escapeHtml(player.pid)}</div>
+      </div>
+
+      ${statusMsg ? `<div class="${statusMsg.ok ? 'ok-msg' : 'error-msg'}">${statusMsg.text}</div>` : ""}
+
+      <div class="upload-zone" id="dropZone">
+        <div class="icon">⇪</div>
+        <div class="main-txt">Upload match schedule</div>
+        <div class="sub-txt">Drop a .xlsx or .csv file here, or tap to choose</div>
+        <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" />
+      </div>
+
+      <div class="spec-box">
+        Expected columns, in this order, with headers in row 1 exactly as shown:<br/>
+        <code>Date</code> · <code>Time</code> · <code>Time to arrive</code> · <code>Location</code> · <code>How many players on field</code><br/>
+        Uploading replaces this player's <b>entire</b> match list — this doesn't merge with what's shown below.
+      </div>
+
+      <div id="previewArea"></div>
+
+      <div class="section-head">
+        <h2>CURRENT UPCOMING MATCHES</h2>
+        <div class="count">${rows.length}</div>
+      </div>
+      <div class="board">${rowsHtml}</div>
+    </main>
+  `;
+
+  document.getElementById("adminLogoutBtn").addEventListener("click", () => {
+    sessionStorage.removeItem("isAdmin");
+    renderLogin();
+  });
+  document.getElementById("backBtn").addEventListener("click", () => renderAdminList());
+
+  const dropZone = document.getElementById("dropZone");
+  const fileInput = document.getElementById("fileInput");
+  dropZone.addEventListener("click", () => fileInput.click());
+  dropZone.addEventListener("dragover", (e) => { e.preventDefault(); dropZone.classList.add("drag"); });
+  dropZone.addEventListener("dragleave", () => dropZone.classList.remove("drag"));
+  dropZone.addEventListener("drop", (e) => {
+    e.preventDefault();
+    dropZone.classList.remove("drag");
+    if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0], player);
+  });
+  fileInput.addEventListener("change", (e) => {
+    if (e.target.files.length) handleFile(e.target.files[0], player);
+  });
+}
+
+function handleFile(file, player){
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const data = new Uint8Array(e.target.result);
+      const workbook = XLSX.read(data, { type: "array", cellDates: true });
+      const firstSheetName = workbook.SheetNames[0];
+      const sheet = workbook.Sheets[firstSheetName];
+      const json = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+      processUploadedRows(json, player);
+    } catch (err){
+      renderAdminPlayerDetail(player, { ok:false, text:"Couldn't read that file. Make sure it's a valid .xlsx or .csv export." });
+    }
+  };
+  reader.onerror = () => {
+    renderAdminPlayerDetail(player, { ok:false, text:"Couldn't read that file. Try again." });
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function normalizeHeader(h){
+  return String(h || "").trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+function processUploadedRows(json, player){
+  if (!json.length){
+    renderAdminPlayerDetail(player, { ok:false, text:"That file has no rows to import." });
+    return;
+  }
+
+  // Map actual headers (any order/casing) to required fields
+  const actualHeaders = Object.keys(json[0]);
+  const headerMap = {};
+  actualHeaders.forEach(h => { headerMap[normalizeHeader(h)] = h; });
+
+  const missing = REQUIRED_HEADERS.filter(req => !(req in headerMap));
+  if (missing.length){
+    renderAdminPlayerDetail(player, {
+      ok:false,
+      text:`Missing or misnamed column(s): ${missing.join(", ")}. Found columns: ${actualHeaders.join(", ")}.`
+    });
+    return;
+  }
+
+  const parsed = json.map(row => {
+    const rawDate = row[headerMap["date"]];
+    const dateIso = toIsoDate(rawDate);
+    return {
+      date: dateIso,
+      time: String(row[headerMap["time"]] || "").trim(),
+      arrive: String(row[headerMap["time to arrive"]] || "").trim(),
+      location: String(row[headerMap["location"]] || "").trim(),
+      playersOnField: row[headerMap["how many players on field"]] === "" ? "" : Number(row[headerMap["how many players on field"]]),
+      _rawDate: rawDate,
+    };
+  });
+
+  renderUploadPreview(parsed, player);
+}
+
+function toIsoDate(value){
+  if (!value) return null;
+  if (Object.prototype.toString.call(value) === "[object Date]" && !isNaN(value)){
+    const y = value.getFullYear(), m = String(value.getMonth()+1).padStart(2,"0"), d = String(value.getDate()).padStart(2,"0");
+    return `${y}-${m}-${d}`;
+  }
+  const str = String(value).trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
+  // Try common formats like DD/MM/YYYY or MM/DD/YYYY, fall back to Date parsing
+  const parsed = new Date(str);
+  if (!isNaN(parsed.getTime())){
+    const y = parsed.getFullYear(), m = String(parsed.getMonth()+1).padStart(2,"0"), d = String(parsed.getDate()).padStart(2,"0");
+    return `${y}-${m}-${d}`;
+  }
+  return null;
+}
+
+function renderUploadPreview(parsed, player){
+  const previewArea = document.getElementById("previewArea");
+  const badCount = parsed.filter(r => !r.date).length;
+
+  previewArea.innerHTML = `
+    <div class="preview-wrap fade-in">
+      <table class="preview">
+        <thead>
+          <tr><th>Date</th><th>Time</th><th>Arrive by</th><th>Location</th><th>Players</th></tr>
+        </thead>
+        <tbody>
+          ${parsed.map(r => `
+            <tr class="${r.date ? '' : 'bad'}">
+              <td>${r.date ? escapeHtml(r.date) : `⚠ "${escapeHtml(r._rawDate)}"`}</td>
+              <td>${escapeHtml(r.time)}</td>
+              <td>${escapeHtml(r.arrive)}</td>
+              <td>${escapeHtml(r.location)}</td>
+              <td>${escapeHtml(r.playersOnField)}</td>
+            </tr>`).join("")}
+        </tbody>
+      </table>
+    </div>
+    ${badCount ? `<div class="error-msg" style="margin-top:12px;">${badCount} row(s) have a date I couldn't parse (marked ⚠ above). Fix those in the source file and re-upload, or confirm anyway to skip them.</div>` : ""}
+    <div class="confirm-bar">
+      <button class="primary" id="confirmUploadBtn" type="button">Confirm &amp; replace schedule</button>
+      <button class="ghost" id="cancelUploadBtn" type="button">Cancel</button>
+    </div>
+  `;
+
+  document.getElementById("confirmUploadBtn").addEventListener("click", () => {
+    const clean = parsed.filter(r => r.date).map(({_rawDate, ...rest}) => rest);
+    saveMatchesFor(player.pid, clean);
+    renderAdminPlayerDetail(player, { ok:true, text:`Saved ${clean.length} match(es) for ${player.name}.` });
+  });
+  document.getElementById("cancelUploadBtn").addEventListener("click", () => {
+    renderAdminPlayerDetail(player);
+  });
 }
 
 /* =========================================================
-   Boot — restore session if present
+   Boot
    ========================================================= */
 (function boot(){
+  if (sessionStorage.getItem("isAdmin") === "1"){
+    renderAdminList();
+    return;
+  }
   const saved = sessionStorage.getItem("player");
   if (saved){
     try { renderDashboard(JSON.parse(saved)); return; } catch(e){}
@@ -403,7 +825,6 @@ function escapeHtml(str){
   renderLogin();
 })();
 
-/* PWA install support */
 if ("serviceWorker" in navigator){
   window.addEventListener("load", () => {
     navigator.serviceWorker.register("sw.js").catch(()=>{});
