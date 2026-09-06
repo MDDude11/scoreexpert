@@ -43,10 +43,27 @@ function doGet(e) {
     if (action === "login") {
       return jsonResponse(handleLogin(e.parameter));
     }
+    if (action === "listPlayers") {
+      return jsonResponse(handleListPlayers());
+    }
     return jsonResponse({ ok: false, reason: "Unknown action." });
   } catch (err) {
     return jsonResponse({ ok: false, reason: "Server error: " + err.message });
   }
+}
+
+/**
+ * Used by Admin mode to list every registered player (so the admin can
+ * pick one and upload their match schedule). No DOB is returned here —
+ * only what's needed to identify and label each player in the list.
+ */
+function handleListPlayers() {
+  const players = readPlayers_().map(p => ({
+    name: p.name,
+    pid: p.pid,
+    isTest: false,
+  }));
+  return { ok: true, players };
 }
 
 function handleLogin(params) {
