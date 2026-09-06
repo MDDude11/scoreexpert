@@ -1,3 +1,4 @@
+
 # Player Portal — setup guide
 
 A web app players log into with **Name + Player ID (PID) + Date of Birth**,
@@ -91,7 +92,58 @@ Add a second tab named **`Schedule`** (or whatever you set
 
 ---
 
-## 5. About the APK
+## 5. Admin mode
+
+On the login screen, tap **"Admin sign-in"** at the bottom. Default test
+password is:
+
+```
+admin123
+```
+
+**Change this before sharing the app with anyone** — open `index.html`,
+find the `CONFIG` block near the top of the `<script>`, and edit:
+
+```js
+ADMIN_PASSWORD: "admin123",
+```
+
+Once in admin mode you'll see every registered player (including test
+users, marked `TEST`). Tap a player to open their schedule editor and
+upload a `.xlsx` or `.csv` file with these exact column headers, in this
+order, in row 1:
+
+| Date | Time | Time to arrive | Location | How many players on field |
+|---|---|---|---|---|
+| 2026-09-14 | 4:30 PM | 4:00 PM | Court 2, Main Hall | 6 |
+
+- **One file per player** — there's no roster/opponent column on purpose,
+  so nobody can see who else is playing that day from the file alone.
+- Uploading shows a **preview** first — nothing saves until you tap
+  "Confirm & replace schedule." Confirming **replaces that player's
+  entire match list** (it doesn't merge with what was there before).
+- Dates that don't parse cleanly are flagged with ⚠ in the preview so you
+  can fix the source file and re-upload, rather than silently guessing.
+- **Right now this is stored in your browser only** (`localStorage`),
+  which is why it's good for testing but won't show up on a different
+  device or browser. See below for making it sync everywhere.
+
+### Making admin uploads sync across devices later
+
+Right now `getMatchesFor` / `saveMatchesFor` in `index.html` read and
+write to the browser's local storage. To make admin uploads sync across
+every device (so you can log into admin mode on your phone, tablet, or
+laptop and see the same data), those two functions need to instead call
+your Apps Script backend — the same way `authenticate()` already does.
+This means adding two more actions to `AppsScript-Code.gs`
+(`getMatches` / `saveMatches`, writing to a "Matches" sheet tab keyed by
+PID) and pointing the app at them once `USE_REMOTE_API` is turned on.
+This isn't wired up yet since you said you're still testing — flag it
+to me whenever you're ready to move to it and I'll build that piece in.
+
+---
+
+## 6. About the APK
 
 A true installable `.apk` needs Android build tooling (Android Studio,
 a signing key, and typically a Play Store listing) that isn't available
