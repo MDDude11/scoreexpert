@@ -1,0 +1,414 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<title>Player Portal</title>
+<link rel="manifest" href="manifest.json" />
+<meta name="theme-color" content="#12181B" />
+<style>
+  :root{
+    --ink:#12181B;
+    --ink-2:#1B2327;
+    --chalk:#F3F1EA;
+    --chalk-dim:#C9C6BC;
+    --slate:#7C8A8E;
+    --line:#33403F;
+    --amber:#E8A33D;
+    --amber-dim:#7A5A28;
+    --danger:#C4553B;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--ink);
+    color:var(--chalk);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+  }
+  .scorefont{
+    font-family: "Arial Narrow", "Helvetica Neue Condensed", Impact, sans-serif;
+    font-stretch: condensed;
+    letter-spacing: 0.02em;
+  }
+
+  /* ---------- Shell ---------- */
+  #app{max-width:520px; margin:0 auto; min-height:100vh; display:flex; flex-direction:column;}
+  header.topbar{
+    display:flex; align-items:baseline; justify-content:space-between;
+    padding:20px 20px 14px 20px;
+    border-bottom:1px solid var(--line);
+  }
+  header.topbar .brand{
+    font-size:13px; letter-spacing:0.08em; color:var(--slate);
+  }
+  header.topbar .brand b{color:var(--chalk); font-weight:700;}
+  header.topbar button{
+    background:none; border:none; color:var(--slate); font-size:13px;
+    cursor:pointer; padding:6px 0;
+  }
+  header.topbar button:hover{color:var(--chalk);}
+  main{flex:1; padding:0 20px 40px 20px;}
+
+  /* ---------- Login ---------- */
+  .login-wrap{padding-top:14vh;}
+  .login-wrap .kicker{
+    color:var(--amber); font-size:14px; margin-bottom:6px; font-weight:600;
+  }
+  h1.hero{
+    font-size:44px; line-height:1.05; margin:0 0 8px 0;
+    font-weight:800;
+  }
+  .sub{color:var(--slate); font-size:15px; margin:0 0 36px 0; max-width:34ch;}
+
+  .slip{border-top:1px solid var(--line);}
+  .field{
+    border-bottom:1px solid var(--line);
+    padding:16px 0;
+  }
+  .field label{
+    display:block; font-size:12px; color:var(--slate);
+    letter-spacing:0.06em; margin-bottom:8px;
+  }
+  .field input{
+    width:100%; background:none; border:none; outline:none;
+    color:var(--chalk); font-size:19px; font-family:inherit;
+    padding:2px 0;
+  }
+  .field input::placeholder{color:#3d4a4d;}
+  .field.pid input{
+    text-transform:uppercase; letter-spacing:0.08em;
+  }
+
+  .cta-row{margin-top:28px;}
+  button.primary{
+    width:100%; background:var(--amber); color:#1c1305; border:none;
+    padding:16px 18px; font-size:16px; font-weight:700; border-radius:2px;
+    cursor:pointer; letter-spacing:0.01em;
+  }
+  button.primary:active{transform:translateY(1px);}
+  button.primary:disabled{background:#4a4536; color:#8a8470; cursor:default;}
+
+  .error-msg{
+    margin-top:16px; padding:12px 14px; border-left:3px solid var(--danger);
+    background:rgba(196,85,59,0.08); color:#e8b3a3; font-size:14px; line-height:1.5;
+  }
+  .hint{margin-top:22px; font-size:13px; color:var(--slate); line-height:1.6;}
+  .hint code{background:var(--ink-2); padding:1px 6px; border-radius:3px; color:var(--chalk-dim);}
+
+  /* ---------- Dashboard ---------- */
+  .greeting{padding:28px 0 4px 0;}
+  .greeting .kicker{color:var(--amber); font-size:13px; font-weight:600; margin-bottom:4px;}
+  .greeting h1{font-size:30px; margin:0 0 2px 0; font-weight:800;}
+  .greeting .pid-tag{color:var(--slate); font-size:14px;}
+
+  .section-head{
+    display:flex; align-items:baseline; justify-content:space-between;
+    margin:34px 0 10px 0;
+  }
+  .section-head h2{
+    font-size:13px; letter-spacing:0.08em; color:var(--slate); font-weight:700; margin:0;
+  }
+  .section-head .count{font-size:13px; color:var(--slate);}
+
+  .board{border-top:1px solid var(--line);}
+  .row{
+    display:flex; gap:16px; align-items:flex-start;
+    padding:18px 0; border-bottom:1px solid var(--line);
+  }
+  .row .datebox{
+    width:56px; flex-shrink:0; text-align:center;
+    padding-top:2px;
+  }
+  .row .datebox .d{font-size:24px; font-weight:800; line-height:1;}
+  .row .datebox .m{font-size:11px; color:var(--slate); letter-spacing:0.08em; margin-top:3px;}
+  .row .info{flex:1; min-width:0;}
+  .row .info .title{font-size:17px; font-weight:700; margin-bottom:4px;}
+  .row .info .meta{font-size:13.5px; color:var(--slate); line-height:1.5;}
+  .row .info .meta span{display:inline-block;}
+  .row .info .meta .dot{margin:0 6px; color:#3d4a4d;}
+  .row .badge{
+    flex-shrink:0; font-size:11px; font-weight:700; letter-spacing:0.04em;
+    padding:4px 8px; border-radius:2px; align-self:center;
+  }
+  .badge.match{background:rgba(232,163,61,0.14); color:var(--amber);}
+  .badge.session{background:rgba(124,138,142,0.14); color:var(--chalk-dim);}
+
+  .empty{
+    padding:34px 0; color:var(--slate); font-size:14.5px; line-height:1.6;
+    border-bottom:1px solid var(--line);
+  }
+  .empty b{color:var(--chalk-dim);}
+
+  footer.note{
+    margin-top:40px; padding-top:18px; border-top:1px solid var(--line);
+    font-size:12.5px; color:#4d5a5d; line-height:1.6;
+  }
+
+  @media (prefers-reduced-motion: no-preference){
+    .fade-in{animation: fadeIn 0.35s ease-out;}
+    @keyframes fadeIn{from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:none;}}
+  }
+
+  button:focus-visible, input:focus-visible{
+    outline:2px solid var(--amber); outline-offset:2px;
+  }
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+/* =========================================================
+   CONFIG — swap this when the real Apps Script API is ready
+   ========================================================= */
+const CONFIG = {
+  // Set to true once you deploy the real Google Apps Script Web App
+  // and paste its /exec URL below. Until then this runs on local
+  // mock/test data so the app is fully usable right now.
+  USE_REMOTE_API: false,
+  API_URL: "PASTE_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE",
+};
+
+/* =========================================================
+   MOCK DATA — a few test players, so you can try the app today.
+   Replace/remove once USE_REMOTE_API is turned on.
+   Real players (once you send the sheet) will show an EMPTY
+   schedule until you add their match/session dates later —
+   the app already supports that empty state below.
+   ========================================================= */
+const MOCK_PLAYERS = [
+  {
+    name: "Ravi Kumar",
+    pid: "TEST-001",
+    dob: "2003-04-12",
+    matches: [
+      { date: "2026-09-14", opponent: "Aditya Rao", time: "4:30 PM", venue: "Court 2, Main Hall" },
+      { date: "2026-09-21", opponent: "Sameer Iqbal", time: "6:00 PM", venue: "Court 1, Main Hall" },
+    ],
+    sessions: [
+      { date: "2026-09-08", title: "Group A Practice", time: "5:00 PM", venue: "Training Court" },
+    ],
+  },
+  {
+    name: "Priya Menon",
+    pid: "TEST-002",
+    dob: "2001-11-30",
+    matches: [
+      { date: "2026-09-15", opponent: "Neha Joshi", time: "2:00 PM", venue: "Court 3, Main Hall" },
+    ],
+    sessions: [],
+  },
+  {
+    name: "Test Empty",
+    pid: "TEST-003",
+    dob: "2000-01-01",
+    matches: [],
+    sessions: [],
+  },
+];
+
+/* =========================================================
+   Data access layer — swaps between mock and real API
+   ========================================================= */
+async function authenticate(name, pid, dob) {
+  if (CONFIG.USE_REMOTE_API) {
+    const url = `${CONFIG.API_URL}?action=login&name=${encodeURIComponent(name)}&pid=${encodeURIComponent(pid)}&dob=${encodeURIComponent(dob)}`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error("Network error contacting the server.");
+    const data = await res.json();
+    return data; // expect { ok: true, player: {...} } or { ok: false, reason: "..." }
+  }
+
+  // ---- mock mode ----
+  await new Promise(r => setTimeout(r, 350)); // feel like a real check
+  const norm = s => (s || "").trim().toLowerCase();
+  const player = MOCK_PLAYERS.find(p =>
+    norm(p.name) === norm(name) &&
+    norm(p.pid) === norm(pid) &&
+    p.dob === dob
+  );
+  if (!player) {
+    return { ok: false, reason: "No player found matching that name, player ID, and date of birth." };
+  }
+  return { ok: true, player };
+}
+
+/* =========================================================
+   Render helpers
+   ========================================================= */
+const app = document.getElementById("app");
+const MONTHS = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"];
+
+function fmtDatePart(iso){
+  // iso: YYYY-MM-DD
+  const [y,m,d] = iso.split("-").map(Number);
+  return { day: String(d).padStart(2,"0"), mon: MONTHS[m-1] };
+}
+
+function renderLogin(errorMsg){
+  app.innerHTML = `
+    <header class="topbar">
+      <div class="brand"><b>PLAYER PORTAL</b></div>
+    </header>
+    <main>
+      <div class="login-wrap">
+        <div class="kicker">SIGN IN</div>
+        <h1 class="hero scorefont">Check your<br/>fixtures.</h1>
+        <p class="sub">Enter your name, player ID, and date of birth exactly as they were registered on your sign-up form.</p>
+
+        <form id="loginForm" novalidate>
+          <div class="slip">
+            <div class="field">
+              <label for="fname">FULL NAME</label>
+              <input id="fname" name="fname" type="text" autocomplete="name" placeholder="As entered on sign-up" required />
+            </div>
+            <div class="field pid">
+              <label for="fpid">PLAYER ID (PID)</label>
+              <input id="fpid" name="fpid" type="text" autocomplete="off" placeholder="e.g. TEST-001" required />
+            </div>
+            <div class="field">
+              <label for="fdob">DATE OF BIRTH</label>
+              <input id="fdob" name="fdob" type="date" required />
+            </div>
+          </div>
+          <div class="cta-row">
+            <button class="primary" id="submitBtn" type="submit">Log in</button>
+          </div>
+          ${errorMsg ? `<div class="error-msg">${errorMsg}</div>` : ""}
+        </form>
+
+        <div class="hint">
+          Testing the app? Try <code>Ravi Kumar</code> / <code>TEST-001</code> / <code>1998-... </code> — see the note below for the full test set.
+        </div>
+        <footer class="note">
+          Test players (mock data mode): Ravi Kumar · TEST-001 · 2003-04-12 &nbsp;|&nbsp;
+          Priya Menon · TEST-002 · 2001-11-30 &nbsp;|&nbsp;
+          Test Empty · TEST-003 · 2000-01-01
+        </footer>
+      </div>
+    </main>
+  `;
+
+  const form = document.getElementById("loginForm");
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById("submitBtn");
+    const name = document.getElementById("fname").value;
+    const pid = document.getElementById("fpid").value;
+    const dob = document.getElementById("fdob").value;
+
+    if (!name.trim() || !pid.trim() || !dob){
+      renderLogin("Please fill in all three fields.");
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = "Checking…";
+    try {
+      const result = await authenticate(name, pid, dob);
+      if (result.ok){
+        sessionStorage.setItem("player", JSON.stringify(result.player));
+        renderDashboard(result.player);
+      } else {
+        renderLogin(result.reason || "Those details don't match our records. Double-check spelling and try again.");
+      }
+    } catch (err){
+      renderLogin("Couldn't reach the server. Check your connection and try again.");
+    }
+  });
+}
+
+function renderDashboard(player){
+  const matches = (player.matches || []).slice().sort((a,b)=>a.date.localeCompare(b.date));
+  const sessions = (player.sessions || []).slice().sort((a,b)=>a.date.localeCompare(b.date));
+
+  const matchRows = matches.length ? matches.map(m => {
+    const dp = fmtDatePart(m.date);
+    return `
+      <div class="row fade-in">
+        <div class="datebox"><div class="d scorefont">${dp.day}</div><div class="m">${dp.mon}</div></div>
+        <div class="info">
+          <div class="title">vs ${escapeHtml(m.opponent)}</div>
+          <div class="meta"><span>${escapeHtml(m.time)}</span><span class="dot">·</span><span>${escapeHtml(m.venue)}</span></div>
+        </div>
+        <div class="badge match">MATCH</div>
+      </div>`;
+  }).join("") : `<div class="empty">No upcoming matches scheduled yet. <b>Check back soon</b> — the fixtures list is updated as rounds are drawn.</div>`;
+
+  const sessionRows = sessions.length ? sessions.map(s => {
+    const dp = fmtDatePart(s.date);
+    return `
+      <div class="row fade-in">
+        <div class="datebox"><div class="d scorefont">${dp.day}</div><div class="m">${dp.mon}</div></div>
+        <div class="info">
+          <div class="title">${escapeHtml(s.title)}</div>
+          <div class="meta"><span>${escapeHtml(s.time)}</span><span class="dot">·</span><span>${escapeHtml(s.venue)}</span></div>
+        </div>
+        <div class="badge session">SESSION</div>
+      </div>`;
+  }).join("") : `<div class="empty">No upcoming sessions scheduled yet. <b>Check back soon</b> — training slots are added as they're confirmed.</div>`;
+
+  app.innerHTML = `
+    <header class="topbar">
+      <div class="brand"><b>PLAYER PORTAL</b></div>
+      <button id="logoutBtn">Log out</button>
+    </header>
+    <main>
+      <div class="greeting fade-in">
+        <div class="kicker">WELCOME BACK</div>
+        <h1>${escapeHtml(player.name)}</h1>
+        <div class="pid-tag">PID ${escapeHtml(player.pid)}</div>
+      </div>
+
+      <div class="section-head">
+        <h2>UPCOMING MATCHES</h2>
+        <div class="count">${matches.length}</div>
+      </div>
+      <div class="board">${matchRows}</div>
+
+      <div class="section-head">
+        <h2>UPCOMING SESSIONS</h2>
+        <div class="count">${sessions.length}</div>
+      </div>
+      <div class="board">${sessionRows}</div>
+
+      <footer class="note">
+        Schedule shown here is pulled from the tournament roster. If something looks wrong, contact your organizer.
+      </footer>
+    </main>
+  `;
+
+  document.getElementById("logoutBtn").addEventListener("click", () => {
+    sessionStorage.removeItem("player");
+    renderLogin();
+  });
+}
+
+function escapeHtml(str){
+  return String(str ?? "").replace(/[&<>"']/g, c => ({
+    "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"
+  }[c]));
+}
+
+/* =========================================================
+   Boot — restore session if present
+   ========================================================= */
+(function boot(){
+  const saved = sessionStorage.getItem("player");
+  if (saved){
+    try { renderDashboard(JSON.parse(saved)); return; } catch(e){}
+  }
+  renderLogin();
+})();
+
+/* PWA install support */
+if ("serviceWorker" in navigator){
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("sw.js").catch(()=>{});
+  });
+}
+</script>
+</body>
+</html>
